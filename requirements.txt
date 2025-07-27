@@ -1,0 +1,9 @@
+telethon
+requests
+python-dotenv
+pillow
+beautifulsoup4
+rembg
+yt-dlp
+google-generativeai
+flask
