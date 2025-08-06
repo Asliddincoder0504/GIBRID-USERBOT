@@ -23,8 +23,8 @@ import google.generativeai as genai
 load_dotenv()
 
 # Load environment variables
-API_ID = os.getenv("API_ID", "28749941")
-API_HASH = os.getenv("API_HASH", "6e109decd165d1b49ecc567c8bbb55c5")
+API_ID = os.getenv("API_ID", "27606796")
+API_HASH = os.getenv("API_HASH", "b428cbb6aeb2bf0dcd4c507193e56f45")
 SESSION_NAME = os.getenv("SESSION_NAME", "hybrid_userbot")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "6472114736"))
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "3cd4b14bd6f9ed61b82105a8c3f2f31e")
@@ -409,4 +409,5 @@ async def main():
 
 
 if __name__ == "__main__":
+
     asyncio.run(main())
