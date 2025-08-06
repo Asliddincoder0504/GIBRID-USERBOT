@@ -6,6 +6,7 @@ import shutil
 import time
 from urllib.parse import urljoin, urlparse
 
+import qrcode
 import requests
 from datetime import datetime
 from io import BytesIO
@@ -19,33 +20,27 @@ from dotenv import load_dotenv
 import yt_dlp
 import google.generativeai as genai
 
-# --- CONFIGURATION ---
 load_dotenv()
 
-# Load environment variables
 API_ID = os.getenv("API_ID", "27606796")
 API_HASH = os.getenv("API_HASH", "b428cbb6aeb2bf0dcd4c507193e56f45")
 SESSION_NAME = os.getenv("SESSION_NAME", "hybrid_userbot")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "6472114736"))
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "3cd4b14bd6f9ed61b82105a8c3f2f31e")
-GENAI_API_KEY = os.getenv("GENAI_API_KEY", "AIzaSyC-h-T764kvHN2N8PQ-IdeJbzXssUfG8Jw")
+GENAI_API_KEY = os.getenv("GENAI_API_KEY", "AIzaSyAqKTvg2JwG_wQPwv-JWCJCOw1ndDyRJwA")
 
-# Logging configuration
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# Telegram client initialization
 client = TelegramClient(SESSION_NAME, API_ID, API_HASH)
 
-# Gemini AI configuration
 genai.configure(api_key=GENAI_API_KEY)
 model = genai.GenerativeModel("gemini-2.0-flash")
 chat = model.start_chat(history=[])
 
-# Weather region mapping
 REGIONS = {
     "Toshkent": "Tashkent", "Andijon": "Andijan", "Farg‘ona": "Fergana", "Namangan": "Namangan",
     "Samarqand": "Samarkand", "Buxoro": "Bukhara", "Xorazm": "Urgench", "Navoiy": "Navoi",
@@ -53,11 +48,9 @@ REGIONS = {
     "Qoraqalpog‘iston": "Nukus"
 }
 
-# Store user data for music search
 user_data = {}
 
 
-# --- UTILITY FUNCTIONS ---
 def clean_downloads():
     """Remove temporary files from the downloads directory."""
     if os.path.exists("downloads"):
@@ -65,7 +58,6 @@ def clean_downloads():
         os.makedirs("downloads", exist_ok=True)
 
 
-# --- BOT COMMANDS ---
 @client.on(events.NewMessage(pattern=r'^\.start$'))
 async def start(event):
     """Handle .start command to display bot menu."""
@@ -141,9 +133,25 @@ async def help_handler(event):
         "• `.id` — Reply qilingan foydalanuvchi yoki guruh ID sini ko‘rsatadi\n"
         "• `.ping` — Botning javob tezligini ko‘rsatadi\n"
         "• `.help` — To‘liq yordamchi buyruqlar ro‘yxati\n"
+        "• `.qrtext <matn>` —   - oddiy QR kod\n"
 
     )
     await event.reply(text)
+
+@client.on(events.NewMessage(pattern=r'^\.qrtext (.+)'))
+async def qr_text_only(event):
+    text = event.pattern_match.group(1)
+    try:
+        qr = qrcode.make(text)
+        bio = BytesIO()
+        qr.save(bio, format="PNG")
+        bio.name = "qr.png"
+        bio.seek(0)
+        await event.reply("✅ QR kod tayyor:", file=bio)
+    except Exception as e:
+        logger.error(f"QR text error: {e}")
+        await event.reply(f"❌ QR yaratishda xatolik: {e}")
+
 
 @client.on(events.NewMessage(pattern=r'^\.ping$'))
 async def ping_handler(event):
@@ -154,9 +162,9 @@ async def ping_handler(event):
     await msg.edit(f"🏓 Pong! `{int(duration)}ms`")
 
 
+
 @client.on(events.NewMessage(pattern=r'^\.bgremove$'))
 async def bgremove_handler(event):
-    """Handle .bgremove command to remove image background."""
     if not event.is_reply:
         return await event.reply("📸 Rasmga reply qiling.")
 
@@ -169,11 +177,10 @@ async def bgremove_handler(event):
         image = Image.open(path).convert("RGBA")
         output = remove(image)
         bio = BytesIO()
-        output = output.convert("RGB")  # JPG format
-        output.save(bio, format='JPEG')
-        bio.name = "removed_bg.jpg"
+        output.save(bio, format='PNG')
+        bio.name = "removed_bg.png"
         bio.seek(0)
-        await event.reply("✅ Fon olib tashlandi:", file=bio)
+        await event.reply("✅ Fon olib tashlandi (PNG):", file=bio)
     except Exception as e:
         logger.error(f"Background removal error: {e}")
         await event.reply(f"❌ Rasm xatoligi: {e}")
@@ -181,10 +188,8 @@ async def bgremove_handler(event):
         if path and os.path.exists(path):
             os.remove(path)
 
-
 @client.on(events.NewMessage(pattern=r'^\.insta (.+)'))
 async def insta_download(event):
-    """Handle .insta command to download Instagram videos."""
     url = event.pattern_match.group(1)
     try:
         ydl_opts = {
@@ -205,26 +210,6 @@ async def insta_download(event):
         if os.path.exists(filename):
             os.remove(filename)
 
-
-
-# @client.on(events.NewMessage(pattern=r'^\.clone (.+)'))
-# async def clone_website(event):
-#     """Handle .clone command to download website HTML."""
-#     url = event.pattern_match.group(1)
-#     try:
-#         r = requests.get(url, timeout=10)
-#         r.raise_for_status()
-#         os.makedirs("downloads", exist_ok=True)
-#         path = "downloads/site.html"
-#         with open(path, 'w', encoding='utf-8') as f:
-#             f.write(r.text)
-#         await event.reply("✅ Sayt nusxalandi", file=path)
-#     except requests.RequestException as e:
-#         logger.error(f"Website clone error: {e}")
-#         await event.reply(f"❌ Clone xatoligi: {e}")
-#     finally:
-#         if os.path.exists(path):
-#             os.remove(path)
 
 
 @client.on(events.NewMessage(pattern=r'^\.clone (.+)'))
@@ -389,7 +374,6 @@ def auto_ping():
             print(f"[AutoPing Error]: {e}")
         time.sleep(270)  # har 4.5 daqiqada (270 sekundda) ping qiladi
 
-# Avtoping funksiyasini thread orqali ishga tushuramiz
 threading.Thread(target=auto_ping).start()
 
 
@@ -409,5 +393,4 @@ async def main():
 
 
 if __name__ == "__main__":
-
     asyncio.run(main())
